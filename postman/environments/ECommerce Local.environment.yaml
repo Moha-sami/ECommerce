@@ -1,0 +1,8 @@
+name: ECommerce Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:5238'
+    enabled: true
+  - key: existingProductId
+    value: '1'
+    enabled: true

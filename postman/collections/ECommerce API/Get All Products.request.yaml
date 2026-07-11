@@ -1,0 +1,53 @@
+name: Get All Products
+method: GET
+url: '{{baseUrl}}/api/ProductS'
+description: 'Retrieves all products.'
+events:
+  - listen: test
+    script:
+      type: text/javascript
+      exec: |-
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+
+        pm.test("Response is JSON", function () {
+            pm.response.to.be.json;
+        });
+
+        pm.test("isSuccess is true", function () {
+            const json = pm.response.json();
+            pm.expect(json.isSuccess).to.be.true;
+        });
+
+        pm.test("Value is an array", function () {
+            const json = pm.response.json();
+            pm.expect(json.value).to.be.an("array");
+        });
+
+        pm.test("Each product has required fields", function () {
+            const json = pm.response.json();
+            if (json.value && json.value.length > 0) {
+                const product = json.value[0];
+                pm.expect(product).to.have.property("id");
+                pm.expect(product).to.have.property("name");
+                pm.expect(product).to.have.property("description");
+                pm.expect(product).to.have.property("price");
+                pm.expect(product).to.have.property("productBrand");
+                pm.expect(product).to.have.property("productType");
+                pm.environment.set("existingProductId", product.id);
+            }
+        });
+
+        pm.test("Product prices are positive numbers", function () {
+            const json = pm.response.json();
+            if (json.value && json.value.length > 0) {
+                json.value.forEach(function(product) {
+                    pm.expect(product.price).to.be.a("number").and.to.be.above(0);
+                });
+            }
+        });
+
+        pm.test("Response time is less than 2000ms", function () {
+            pm.expect(pm.response.responseTime).to.be.below(2000);
+        });

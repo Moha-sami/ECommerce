@@ -1,0 +1,33 @@
+name: Get Product By Invalid ID
+method: GET
+url: '{{baseUrl}}/api/ProductS/99999'
+description: 'Tests that requesting a non-existent product ID returns 404 with proper error structure.'
+events:
+  - listen: test
+    script:
+      type: text/javascript
+      exec: |-
+        pm.test("Status code is 404 for non-existent product", function () {
+            pm.response.to.have.status(404);
+        });
+
+        pm.test("isSuccess is false", function () {
+            const json = pm.response.json();
+            pm.expect(json.isSuccess).to.be.false;
+        });
+
+        pm.test("Error object is present", function () {
+            const json = pm.response.json();
+            pm.expect(json.error).to.not.be.null;
+            pm.expect(json.error).to.be.an("object");
+        });
+
+        pm.test("Error message mentions the product ID", function () {
+            const json = pm.response.json();
+            pm.expect(json.error.message).to.include("99999");
+        });
+
+        pm.test("Value is null on failure", function () {
+            const json = pm.response.json();
+            pm.expect(json.value).to.be.null;
+        });

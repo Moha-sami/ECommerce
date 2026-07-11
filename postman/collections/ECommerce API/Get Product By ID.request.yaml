@@ -1,0 +1,44 @@
+name: Get Product By ID
+method: GET
+url: '{{baseUrl}}/api/ProductS/{{existingProductId}}'
+description: 'Retrieves a single product by ID.'
+events:
+  - listen: test
+    script:
+      type: text/javascript
+      exec: |-
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+
+        pm.test("isSuccess is true", function () {
+            const json = pm.response.json();
+            pm.expect(json.isSuccess).to.be.true;
+        });
+
+        pm.test("Value is a single product object", function () {
+            const json = pm.response.json();
+            pm.expect(json.value).to.be.an("object");
+            pm.expect(json.value).to.not.be.an("array");
+        });
+
+        pm.test("Returned product ID matches requested ID", function () {
+            const json = pm.response.json();
+            const requestedId = parseInt(pm.environment.get("existingProductId"));
+            pm.expect(json.value.id).to.equal(requestedId);
+        });
+
+        pm.test("Product has all required fields with correct types", function () {
+            const json = pm.response.json();
+            const product = json.value;
+            pm.expect(product.id).to.be.a("number");
+            pm.expect(product.name).to.be.a("string").and.to.not.be.empty;
+            pm.expect(product.description).to.be.a("string");
+            pm.expect(product.price).to.be.a("number").and.to.be.above(0);
+            pm.expect(product.productBrand).to.be.a("string");
+            pm.expect(product.productType).to.be.a("string");
+        });
+
+        pm.test("Response time is less than 2000ms", function () {
+            pm.expect(pm.response.responseTime).to.be.below(2000);
+        });

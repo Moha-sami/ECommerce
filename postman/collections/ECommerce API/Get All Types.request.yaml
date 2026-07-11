@@ -1,0 +1,45 @@
+name: Get All Types
+method: GET
+url: '{{baseUrl}}/api/ProductS/types'
+description: 'Retrieves all product types.'
+events:
+  - listen: test
+    script:
+      type: text/javascript
+      exec: |-
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+
+        pm.test("isSuccess is true", function () {
+            const json = pm.response.json();
+            pm.expect(json.isSuccess).to.be.true;
+        });
+
+        pm.test("Value is an array", function () {
+            const json = pm.response.json();
+            pm.expect(json.value).to.be.an("array");
+        });
+
+        pm.test("Each type has id and name fields", function () {
+            const json = pm.response.json();
+            if (json.value && json.value.length > 0) {
+                json.value.forEach(function(type) {
+                    pm.expect(type).to.have.property("id").that.is.a("number");
+                    pm.expect(type).to.have.property("name").that.is.a("string").and.not.empty;
+                });
+            }
+        });
+
+        pm.test("No duplicate type IDs", function () {
+            const json = pm.response.json();
+            if (json.value && json.value.length > 0) {
+                const ids = json.value.map(t => t.id);
+                const uniqueIds = [...new Set(ids)];
+                pm.expect(ids.length).to.equal(uniqueIds.length);
+            }
+        });
+
+        pm.test("Response time is less than 2000ms", function () {
+            pm.expect(pm.response.responseTime).to.be.below(2000);
+        });
