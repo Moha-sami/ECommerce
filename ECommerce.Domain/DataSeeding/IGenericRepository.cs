@@ -1,4 +1,5 @@
-﻿using ECommerce.Domain.Entities;
+using ECommerce.Domain.Entities;
+using ECommerce.Domain.Specifications;
 
 namespace ECommerce.Domain.DataSeeding;
 
@@ -10,5 +11,9 @@ public interface IGenericRepository<TEnitiy, Tkey> where TEnitiy : BaseEntity<Tk
     void Delete(TEnitiy entity);
     Task<IReadOnlyList<TEnitiy>> GetAllAsync(CancellationToken ct = default);
     Task<TEnitiy?> GetByIdAsync(Tkey id, CancellationToken ct = default);
-
+    
+    // Specification operations
+    Task<TEnitiy?> GetEntityWithSpec(ISpecification<TEnitiy> spec, CancellationToken ct = default);
+    Task<IReadOnlyList<TEnitiy>> ListWithSpecAsync(ISpecification<TEnitiy> spec, CancellationToken ct = default);
 }
+

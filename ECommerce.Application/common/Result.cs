@@ -21,7 +21,7 @@ public class Result
     {
         private readonly TValue _value;
 
-        public TValue data => IsSuccess ? _value : throw new InvalidOperationException("Cannot access data from a failed result.");
+        public TValue Data => IsSuccess ? _value : throw new InvalidOperationException("Cannot access data from a failed result.");
 
         private Result(TValue Value) : base(true, Array.Empty<Error>())
          {
@@ -35,7 +35,7 @@ public class Result
         {
             _value = default;
         }
-        public static Result<TValue> ok(TValue value) => new Result<TValue>(value);
+        public static Result<TValue> Ok(TValue value) => new Result<TValue>(value);
         public static Result<TValue> Fail(Error error) => new Result<TValue>(error);
         public static Result<TValue> Fail(IReadOnlyList<Error> errors) => new Result<TValue>(errors);
 

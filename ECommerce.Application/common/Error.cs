@@ -1,4 +1,6 @@
-﻿namespace ECommerce.Application.common;
+﻿using System.Text.Json.Serialization;
+
+namespace ECommerce.Application.common;
 
 public sealed record Error(string Code, string Description, ErrorType ErrorType = ErrorType.Failure)
 {
@@ -17,6 +19,7 @@ public sealed record Error(string Code, string Description, ErrorType ErrorType 
     public static Error Failure(string code = "General.failure", string description = "General failure has occurred")
         => new Error(code, description, ErrorType.Failure);
 }
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ErrorType
 {
     Failure = 0,
