@@ -15,6 +15,10 @@ public class ProductProfile : Profile
             .ForMember(dest => dest.ProductType, opt => opt.MapFrom(src => src.ProductType.Name));
 
         // Reverse map for create
-        CreateMap<ProductCreateDto, Product>();
+        CreateMap<ProductCreateDto, Product>()
+            .ForMember(dest => dest.BrandId, opt => opt.MapFrom(src => src.ProductBrandId))
+            .ForMember(dest => dest.TypeId, opt => opt.MapFrom(src => src.ProductTypeId))
+            .ForMember(dest => dest.ProductBrand, opt => opt.Ignore())
+            .ForMember(dest => dest.ProductType, opt => opt.Ignore());
     }
 }

@@ -15,6 +15,7 @@ public class IdentityDataSeeder(
 {
     private const string AdminRole = "Admin";
     private const string AdminEmail = "admin@ecommerce.com";
+    private const string FixedAdminPassword = "AdminPassword123!";
 
     public async Task SeedDataAsync(CancellationToken ct = default)
     {
@@ -31,10 +32,10 @@ public class IdentityDataSeeder(
                 logger.LogInformation("Admin role created.");
             }
 
-            // Seed Admin user
-            if (await userManager.FindByEmailAsync(AdminEmail) == null)
+            // Seed or Reset Admin user
+            var adminUser = await userManager.FindByEmailAsync(AdminEmail);
+            if (adminUser == null)
             {
-                var password = $"Admin@{Guid.NewGuid().ToString("N")[..8]}!";
                 var admin = new AppUser
                 {
                     DisplayName = "Admin",
@@ -42,16 +43,15 @@ public class IdentityDataSeeder(
                     UserName = AdminEmail
                 };
 
-                var result = await userManager.CreateAsync(admin, password);
+                var result = await userManager.CreateAsync(admin, FixedAdminPassword);
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(admin, AdminRole);
-                    // Print to console — this is the only time this password is visible
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("===========================================");
-                    Console.WriteLine($"  Admin user created on first run");
+                    Console.WriteLine($"  Admin user created");
                     Console.WriteLine($"  Email:    {AdminEmail}");
-                    Console.WriteLine($"  Password: {password}");
+                    Console.WriteLine($"  Password: {FixedAdminPassword}");
                     Console.WriteLine("===========================================");
                     Console.ResetColor();
                     logger.LogInformation("Admin user seeded.");
@@ -61,6 +61,15 @@ public class IdentityDataSeeder(
                     foreach (var error in result.Errors)
                         logger.LogError("Admin seed error: {Code} - {Description}", error.Code, error.Description);
                 }
+            }
+            else
+            {
+                if (!await userManager.IsInRoleAsync(adminUser, AdminRole))
+                {
+                    await userManager.AddToRoleAsync(adminUser, AdminRole);
+                }
+                var token = await userManager.GeneratePasswordResetTokenAsync(adminUser);
+                await userManager.ResetPasswordAsync(adminUser, token, FixedAdminPassword);
             }
         }
         catch (Exception ex)
