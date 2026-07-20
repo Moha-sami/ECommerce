@@ -1,76 +1,115 @@
-# ECommerce.API
+# ECommerce API
 
-A .NET Web API for an E-Commerce store, built using **Onion Architecture** with a rich domain model approach.
+A .NET Web API for an e-commerce platform, built with Onion Architecture and a rich domain model. Built as a learning project covering catalog browsing, response caching, authentication, order processing, and Stripe payment integration.
 
-## 🏗️ Architecture
+## Architecture
 
-This project follows Onion Architecture, with strict inward-only dependencies:
+The solution follows Onion Architecture, with dependencies pointing inward:
 
 ```
-ECommerce.API            → Presentation (Controllers, Program.cs, Middleware)
-ECommerce.Infrastructure → Data access, EF Core, external services
-ECommerce.Application    → Use cases, DTOs, service interfaces, business orchestration
-ECommerce.Domain         → Core layer — entities, interfaces, no external dependencies
+ECommerce.Domain          — entities, interfaces, no external dependencies
+ECommerce.Application     — services, DTOs, business logic (depends on Domain)
+ECommerce.Infrastructure  — EF Core, Redis, Stripe, Identity (depends on Application + Domain)
+ECommerce.API             — controllers, startup (depends on all of the above)
 ```
 
-**Dependency rule:** Domain depends on nothing. Application depends on Domain. Infrastructure depends on Application (and transitively Domain). API depends on Application + Infrastructure.
+## Features
 
-## 📦 Tech Stack
+- **Product catalog** — browsing, filtering, and specification-based querying
+- **Response caching** — Redis-backed caching on read-heavy catalog endpoints via a custom `[Cached]` action filter
+- **Identity & JWT authentication** — user registration/login, role-based authorization (Admin role for product management)
+- **Basket** — Redis-backed customer basket
+- **Orders** — order creation with server-side price recalculation (never trusts client-supplied prices)
+- **Payments** — Stripe PaymentIntent integration with webhook-driven order status updates
+- **Admin dashboard** — minimal static HTML/JS page for adding products (see `AdminDashboard/`)
 
-- .NET / ASP.NET Core Web API
-- Entity Framework Core (SQL Server)
+## Tech Stack
+
+- ASP.NET Core Web API (.NET 10)
+- Entity Framework Core + SQL Server
+- ASP.NET Core Identity + JWT Bearer authentication
+- StackExchange.Redis
+- Stripe.net
 - AutoMapper
-- Fluent API (`IEntityTypeConfiguration<T>`) for entity configuration
 
-## 🧱 Domain Model
+## Prerequisites
 
-Rich domain model approach — entities protect their own invariants via private setters and constructor guard clauses (e.g. a `Product` cannot be created with a negative price or empty name).
+- .NET 10 SDK
+- SQL Server (local or containerized)
+- Redis (see below)
+- A [Stripe](https://dashboard.stripe.com/register) account with test-mode API keys
+- [Stripe CLI](https://stripe.com/docs/stripe-cli) (for local webhook testing)
 
-### Entities
+## Getting Started
 
-- **Product** — Name, Description, Price, PictureUrl (optional), belongs to one `Brand` and one `ProductType`
-- **Brand** — Name, has many `Products`
-- **ProductType** — Name, has many `Products`
+### 1. Clone and restore
 
-All entities inherit from `BaseEntity<T>`, which provides:
-- `Id`
-- `CreatedAt` / `UpdatedAt` (`DateTimeOffset`)
-- `IsDeleted` (soft delete flag)
+```bash
+git clone <your-repo-url>
+cd ECommerce
+dotnet restore
+```
 
-### Relationships
+### 2. Start Redis
 
-- `Product` → `Brand` (many-to-one, `DeleteBehavior.Restrict` — a Brand with existing Products cannot be deleted)
-- `Product` → `ProductType` (many-to-one, `DeleteBehavior.Restrict` — same rule)
+```bash
+docker run -d --name redis -p 6379:6379 redis
+```
 
-### Soft Delete
+### 3. Configure secrets
 
-Implemented at the repository level (explicit flag flip on delete, not a hard `DELETE`), combined with EF Core global query filters (`HasQueryFilter`) so deleted rows are automatically excluded from every query.
+This project uses `dotnet user-secrets` for local development — **no real secrets are committed to this repo**. Set your own:
 
-## 🗄️ Data Access
+```bash
+cd ECommerce.API
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<your SQL Server connection string>"
+dotnet user-secrets set "ConnectionStrings:IdentityConnection" "<your SQL Server connection string, separate DB>"
+dotnet user-secrets set "JwtSettings:Key" "<a long random secret, 32+ bytes>"
+dotnet user-secrets set "StripeSettings:SecretKey" "sk_test_..."
+dotnet user-secrets set "StripeSettings:PublishableKey" "pk_test_..."
+dotnet user-secrets set "StripeSettings:WebhookSecret" "whsec_..."
+```
 
-- **Generic Repository** (`IGenericRepository<T>`) — Add, Update, Delete, GetById, GetAll — interface in Domain, implementation in Infrastructure
-- **Unit of Work** — coordinates repositories and `SaveChangesAsync` (dictionary-based repository resolution)
-- **Data Seeding** — JSON-based seed files for `Product`, `Brand`, `ProductType`. Applies pending migrations automatically, checks for existing data before seeding, deserializes via entity constructors (`[JsonConstructor]`) so domain validation still runs during seeding.
+Webhook secret comes from running `stripe listen --forward-to https://localhost:<port>/api/payments/webhook` locally.
 
-## 🧩 Application Layer
+### 4. Apply migrations
 
-- **Result Pattern** — service methods return a `Result` / `Result<T>` wrapper instead of throwing for expected failure cases (e.g. not found), supporting single and multiple error scenarios
-- **DTOs** — decouple API contracts from domain entities
-- **AutoMapper** — mapping profiles between entities and DTOs
-- **Service interfaces** implemented per entity, consumed by controllers
+```bash
+dotnet ef database update --context AppDbContext --project ECommerce.Infrastructure --startup-project ECommerce.API
+dotnet ef database update --context AppIdentityDbContext --project ECommerce.Infrastructure --startup-project ECommerce.API
+```
 
-## 🌐 API
+### 5. Run
 
-- Controllers implemented for Products, Brands, and ProductTypes
-- Currently working through: translating `Result<T>` failures into correct HTTP status codes (404, 400, etc.) via a shared base controller pattern, instead of leaking raw failed results to serialization
+```bash
+dotnet run --project ECommerce.API
+```
 
-## 🚧 Roadmap / In Progress
+On first run, an admin user is seeded automatically; the generated password is printed to the console — check your terminal output.
 
-- [ ] Base Controller with shared `Result` → `IActionResult` translation
-- [ ] Specification pattern (for flexible filtering / includes without repository bloat)
-- [ ] Audit column automation via EF Core `SaveChanges` interceptor
-- [ ] Additional entities (Orders, Categories, etc.)
+### 6. Admin dashboard (optional)
 
-## 📚 Learning Project
+Open `AdminDashboard/index.html` directly in a browser. Log in with the seeded admin credentials to add products. Note: this dashboard is a local dev tool only — it relies on a permissive CORS policy that should not be used in production.
 
-This project is being built as a mentorship-style learning exercise, focused on deliberate architectural decisions (soft delete strategy, encapsulation vs. serialization tradeoffs, delete behaviors, DI scoping) rather than just "make it work" code.
+## API Overview
+
+| Area | Endpoints |
+|---|---|
+| Products | `GET /api/products`, `GET /api/products/{id}`, `GET /api/products/types`, `GET /api/products/Brand`, `POST /api/products` (Admin) |
+| Account | `POST /api/account/register`, `POST /api/account/login`, `GET /api/account`, `GET/PUT /api/account/address` |
+| Basket | `GET/POST/DELETE /api/basket` |
+| Orders | `POST /api/orders`, `GET /api/orders`, `GET /api/orders/{id}`, `GET /api/orders/deliveryMethods` |
+| Payments | `POST /api/payments/{basketId}`, `POST /api/payments/webhook` |
+
+Swagger UI is available at the API root when running in development.
+
+## Known Limitations
+
+- `basketId` is not currently verified to belong to the authenticated user on Order/Payment endpoints — acceptable for a learning project, would need fixing before any production use
+- Cached product responses are not invalidated on product create/update/delete beyond their TTL
+- Admin dashboard uses a permissive dev-only CORS policy
+
+## License
+
+Personal learning project — no license specified.
