@@ -30,6 +30,7 @@ public static class InfrastructureServiceRegistration
             options.UseSqlServer(configuration.GetConnectionString("IdentityConnection")));
 
         // Identity
+        services.AddHttpContextAccessor();
         services.AddIdentityCore<AppUser>()
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<AppIdentityDbContext>()
