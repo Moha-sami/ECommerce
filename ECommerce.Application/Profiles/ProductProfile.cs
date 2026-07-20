@@ -1,10 +1,10 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ECommerce.Application.DTOs.Products;
 using ECommerce.Domain.Entities;
 
 namespace ECommerce.Application.Profiles;
 
-public class ProductProfile: Profile
+public class ProductProfile : Profile
 {
     public ProductProfile()
     {
@@ -13,5 +13,8 @@ public class ProductProfile: Profile
         CreateMap<Product, ProductDto>()
             .ForMember(dest => dest.ProductBrand, opt => opt.MapFrom(src => src.ProductBrand.Name))
             .ForMember(dest => dest.ProductType, opt => opt.MapFrom(src => src.ProductType.Name));
+
+        // Reverse map for create
+        CreateMap<ProductCreateDto, Product>();
     }
 }

@@ -13,14 +13,15 @@ internal class ProductService : IProductService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
-    public ProductService(IUnitOfWork unitOfWork,IMapper mapper)
+    public ProductService(IUnitOfWork unitOfWork, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
+
     public async Task<Result<IReadOnlyList<BrandDto>>> GetAllBrandsAsync(CancellationToken ct = default)
     {
-        var brands = await _unitOfWork.GetRepository<ProductBrand,int>().GetAllAsync(ct);
+        var brands = await _unitOfWork.GetRepository<ProductBrand, int>().GetAllAsync(ct);
         var data = _mapper.Map<IReadOnlyList<BrandDto>>(brands);
         return Result<IReadOnlyList<BrandDto>>.Ok(data);
     }
@@ -32,10 +33,6 @@ internal class ProductService : IProductService
         var data = _mapper.Map<IReadOnlyList<ProductDto>>(products);
         return Result<IReadOnlyList<ProductDto>>.Ok(data);
     }
-
-
-
-
 
     public async Task<Result<IReadOnlyList<TypeDto>>> GetAllTypesAsync(CancellationToken ct = default)
     {
@@ -49,9 +46,20 @@ internal class ProductService : IProductService
         var spec = new ProductByIdSpecification(id);
         var product = await _unitOfWork.GetRepository<Product, int>().GetEntityWithSpec(spec, ct);
         if (product == null)
-            return Result<ProductDto>.Fail(Error.NotFound("Product Not Found",$"Product with Id {id} Is not Found"));
+            return Result<ProductDto>.Fail(Error.NotFound("Product Not Found", $"Product with Id {id} Is not Found"));
         var data = _mapper.Map<ProductDto>(product);
         return Result<ProductDto>.Ok(data);
     }
-}
 
+    public async Task<Result<ProductDto>> CreateProductAsync(ProductCreateDto productCreateDto, CancellationToken ct = default)
+    {
+        var product = _mapper.Map<Product>(productCreateDto);
+        _unitOfWork.GetRepository<Product, int>().Add(product);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        var spec = new ProductByIdSpecification(product.Id);
+        var created = await _unitOfWork.GetRepository<Product, int>().GetEntityWithSpec(spec, ct);
+        var data = _mapper.Map<ProductDto>(created);
+        return Result<ProductDto>.Ok(data);
+    }
+}

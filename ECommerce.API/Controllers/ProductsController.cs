@@ -1,6 +1,7 @@
 using ECommerce.Application.common;
 using ECommerce.Application.Contacts;
 using ECommerce.Application.DTOs.Products;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerce.API.Controllers;
@@ -23,10 +24,6 @@ public class ProductsController : BaseController
         var result = await _productService.GetAllProductsAsync(specParams, ct);
         return HandleResult(result);
     }
-
-
-
-
 
     //Get product By ID
     [HttpGet("{id}")]
@@ -51,6 +48,12 @@ public class ProductsController : BaseController
         var result = await _productService.GetAllBrandsAsync(ct);
         return HandleResult(result);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] ProductCreateDto productCreateDto, CancellationToken ct = default)
+    {
+        var result = await _productService.CreateProductAsync(productCreateDto, ct);
+        return HandleResult(result);
+    }
 }
-
-

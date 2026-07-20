@@ -1,0 +1,9 @@
+namespace ECommerce.Domain.Entities.OrderAggregate;
+
+public class DeliveryMethod : BaseEntity<int>
+{
+    public string ShortName { get; set; } = string.Empty;
+    public string DeliveryTime { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+}

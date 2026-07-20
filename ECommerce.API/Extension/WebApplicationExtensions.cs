@@ -1,4 +1,4 @@
-﻿using ECommerce.Domain.DataSeeding;
+using ECommerce.Domain.DataSeeding;
 using ECommerce.Infrastructure.DataSeeding;
 
 namespace ECommerce.API.Extension
@@ -10,8 +10,10 @@ namespace ECommerce.API.Extension
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                var dataSeeder = services.GetRequiredKeyedService<IDataSeeder>(nameof(CatalogDataSeeder));
-                await dataSeeder.SeedDataAsync();
+                var catalogSeeder = services.GetRequiredKeyedService<IDataSeeder>(nameof(CatalogDataSeeder));
+                await catalogSeeder.SeedDataAsync();
+                var identitySeeder = services.GetRequiredKeyedService<IDataSeeder>(nameof(IdentityDataSeeder));
+                await identitySeeder.SeedDataAsync();
                 return app;
             }
         }
